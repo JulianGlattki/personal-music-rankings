@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Music Rankings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d0d;
+      --surface: #141414;
+      --surface2: #1c1c1c;
+      --border: #2a2a2a;
+      --accent: #c8a96e;
+      --accent2: #e8d5b0;
+      --text: #e8e4dc;
+      --muted: #6b6560;
+      --sidebar-w: 240px;
+      --header-h: 64px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.5;
+    }
+
+    /* ══ HEADER ══ */
+    header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--header-h);
+      background: rgba(13,13,13,0.94);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 1.5rem;
+      gap: 1rem;
+      z-index: 200;
+    }
+
+    .hamburger {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.4rem;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
+    .hamburger span {
+      display: block;
+      width: 20px;
+      height: 1.5px;
+      background: var(--muted);
+      transition: all 0.25s;
+    }
+
+    .hamburger:hover span { background: var(--accent); }
+
+    .site-logo {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.15rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      color: var(--accent2);
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .breadcrumb {
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .breadcrumb .sep { color: var(--border); }
+    .breadcrumb .crumb-active { color: var(--accent); }
+
+    /* ══ SIDEBAR ══ */
+    .sidebar-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 150;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    .sidebar-overlay.open { opacity: 1; pointer-events: all; }
+
+    aside {
+      position: fixed;
+      top: 0; left: 0;
+      width: var(--sidebar-w);
+      height: 100vh;
+      background: #111;
+      border-right: 1px solid var(--border);
+      z-index: 160;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+      overflow-y: auto;
+    }
+
+    aside.open { transform: translateX(0); }
+    aside::-webkit-scrollbar { width: 2px; }
+    aside::-webkit-scrollbar-thumb { background: var(--border); }
+
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 1.25rem 1rem;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .sidebar-title {
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .sidebar-close {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1.1rem;
+      line-height: 1;
+      padding: 0.2rem;
+      transition: color 0.15s;
+    }
+
+    .sidebar-close:hover { color: var(--accent); }
+
+    .sidebar-home-link {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      padding: 0.9rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .sidebar-home-link:hover { color: var(--accent2); background: rgba(200,169,110,0.05); }
+
+    .sidebar-group { border-bottom: 1px solid var(--border); }
+
+    .sidebar-group-trigger {
+      width: 100%;
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.85rem 1.25rem;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+      text-align: left;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .sidebar-group-trigger:hover { background: rgba(200,169,110,0.05); color: var(--accent2); }
+    .sidebar-group-trigger.active { color: var(--accent); }
+
+    .sidebar-group-trigger .chevron {
+      margin-left: auto;
+      font-size: 0.6rem;
+      color: var(--muted);
+      transition: transform 0.2s;
+    }
+
+    .sidebar-group-trigger.expanded .chevron { transform: rotate(90deg); }
+
+    .sidebar-sub {
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height 0.3s ease;
+    }
+
+    .sidebar-sub.open { max-height: 300px; }
+
+    .sidebar-sub a {
+      display: block;
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 0.68rem;
+      letter-spacing: 0.05em;
+      padding: 0.5rem 1.25rem 0.5rem 2.8rem;
+      transition: color 0.15s, background 0.15s;
+      border-left: 2px solid transparent;
+    }
+
+    .sidebar-sub a:hover { color: var(--accent2); background: rgba(200,169,110,0.05); }
+    .sidebar-sub a.active { color: var(--accent); border-left-color: var(--accent); }
+
+    /* ══ PAGES ══ */
+    .page {
+      display: none;
+      padding-top: var(--header-h);
+      min-height: 100vh;
+    }
+
+    .page.active {
+      display: block;
+      animation: fadeUp 0.35s ease both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ══ HOME HERO ══ */
+    .home-hero {
+      padding: 5rem 4rem 3.5rem;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .home-hero::after {
+      content: 'MUSIC';
+      position: absolute;
+      right: -1rem; top: 50%;
+      transform: translateY(-50%);
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(6rem, 18vw, 18rem);
+      font-weight: 900;
+      color: transparent;
+      -webkit-text-stroke: 1px rgba(200,169,110,0.06);
+      pointer-events: none;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .home-hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.2rem, 6vw, 5rem);
+      font-weight: 900;
+      line-height: 0.95;
+      letter-spacing: -0.03em;
+    }
+
+    .home-hero h1 em { font-style: italic; color: var(--accent); }
+
+    .home-hero p {
+      margin-top: 1.5rem;
+      color: var(--muted);
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      max-width: 38ch;
+    }
+
+    /* ══ HOME GRID ══ */
+    .home-grid {
+      padding: 2.5rem 4rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border-top: 1px solid var(--border);
+    }
+
+    .preview-card {
+      background: var(--surface);
+      padding: 2rem 2rem 1.5rem;
+      transition: background 0.15s;
+    }
+
+    .preview-card:hover { background: var(--surface2); }
+
+    .preview-cat-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .preview-cat-icon { font-size: 1.3rem; }
+
+    .preview-cat-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+
+    .preview-top3 {
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 1.25rem;
+    }
+
+    .preview-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.6rem 0;
+      border-bottom: 1px solid rgba(42,42,42,0.6);
+    }
+
+    .preview-row:last-child { border-bottom: none; }
+
+    .preview-rank {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+      font-weight: 900;
+      min-width: 2rem;
+      text-align: right;
+      line-height: 1;
+      flex-shrink: 0;
+      color: rgba(200,169,110,0.18);
+    }
+
+    .preview-rank.gold   { color: rgba(255,210,80,0.55); }
+    .preview-rank.silver { color: rgba(185,185,190,0.45); }
+    .preview-rank.bronze { color: rgba(205,127,50,0.45); }
+
+    .preview-info { flex: 1; min-width: 0; }
+
+    .preview-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 0.88rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .preview-artist {
+      font-size: 0.64rem;
+      color: var(--muted);
+      margin-top: 0.1rem;
+    }
+
+    .preview-year {
+      font-size: 0.6rem;
+      color: var(--accent);
+      letter-spacing: 0.08em;
+      flex-shrink: 0;
+    }
+
+    .read-more-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.64rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: none;
+      border: 1px solid rgba(200,169,110,0.3);
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      font-family: 'DM Mono', monospace;
+      transition: all 0.15s;
+    }
+
+    .read-more-btn:hover {
+      background: rgba(200,169,110,0.08);
+      border-color: var(--accent);
+      color: var(--accent2);
+    }
+
+    /* ══ DETAIL HERO ══ */
+    .detail-hero {
+      padding: 3.5rem 4rem 2.5rem;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.64rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: 'DM Mono', monospace;
+      padding: 0;
+      margin-bottom: 1.5rem;
+      transition: color 0.15s;
+    }
+
+    .back-btn:hover { color: var(--accent); }
+
+    .detail-bg-text {
+      position: absolute;
+      right: -1rem; top: 50%;
+      transform: translateY(-50%);
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(5rem, 14vw, 14rem);
+      font-weight: 900;
+      color: transparent;
+      -webkit-text-stroke: 1px rgba(200,169,110,0.06);
+      pointer-events: none;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .detail-hero h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 6vw, 4.5rem);
+      font-weight: 900;
+      line-height: 0.95;
+      letter-spacing: -0.03em;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    /* ══ DETAIL CONTENT ══ */
+    .detail-content { padding: 2.5rem 4rem; }
+
+    .section-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1.25rem;
+    }
+
+    .ranked-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      margin-bottom: 3rem;
+    }
+
+    .album-row {
+      background: var(--surface);
+      display: grid;
+      grid-template-columns: 60px 1fr;
+      align-items: stretch;
+      transition: background 0.15s;
+    }
+
+    .album-row:hover { background: var(--surface2); }
+
+    .album-rank-col {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-right: 1px solid var(--border);
+      padding: 1.25rem 0.5rem;
+    }
+
+    .album-rank-num {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: rgba(200,169,110,0.18);
+      line-height: 1;
+      transition: color 0.15s;
+    }
+
+    .album-row:hover .album-rank-num { color: rgba(200,169,110,0.45); }
+    .album-rank-num.gold   { color: rgba(255,210,80,0.5) !important; }
+    .album-rank-num.silver { color: rgba(185,185,190,0.4) !important; }
+    .album-rank-num.bronze { color: rgba(205,127,50,0.4) !important; }
+
+    .album-main-col { padding: 1.25rem 1.5rem; }
+
+    .album-row-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.2rem;
+    }
+
+    .album-row-artist { font-size: 0.7rem; color: var(--muted); margin-bottom: 0.25rem; }
+    .album-row-year   { font-size: 0.6rem; color: var(--accent); letter-spacing: 0.1em; margin-bottom: 0.75rem; }
+
+    .spotify-embed iframe { border-radius: 4px; border: none; display: block; }
+
+    .spotify-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.62rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #1DB954;
+      text-decoration: none;
+      opacity: 0.75;
+      transition: opacity 0.15s;
+    }
+
+    .spotify-link:hover { opacity: 1; }
+
+    .hm-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+    }
+
+    .hm-card {
+      background: var(--surface);
+      padding: 1rem 1.25rem;
+      transition: background 0.15s;
+    }
+
+    .hm-card:hover { background: var(--surface2); }
+    .hm-title { font-family: 'Playfair Display', serif; font-size: 0.85rem; font-weight: 700; margin-bottom: 0.2rem; }
+    .hm-artist { font-size: 0.65rem; color: var(--muted); margin-bottom: 0.4rem; }
+    .hm-link { font-size: 0.6rem; color: #1DB954; text-decoration: none; opacity: 0.7; transition: opacity 0.15s; }
+    .hm-link:hover { opacity: 1; }
+
+    /* ══ FOOTER ══ */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 1.75rem 4rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 4rem;
+    }
+
+    footer p { font-size: 0.62rem; color: var(--muted); letter-spacing: 0.08em; }
+
+    /* ══ RESPONSIVE ══ */
+    @media (max-width: 700px) {
+      .home-hero, .detail-hero, .detail-content { padding-left: 1.5rem; padding-right: 1.5rem; }
+      .home-grid { padding: 0; grid-template-columns: 1fr; }
+      footer { padding: 1.25rem 1.5rem; flex-direction: column; gap: 0.5rem; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ HEADER ══ -->
+<header>
+  <button class="hamburger" id="hamburger-btn" aria-label="Open menu">
+    <span></span><span></span><span></span>
+  </button>
+  <a class="site-logo" href="#" onclick="showHome(); return false;">My Music Rankings</a>
+  <div class="breadcrumb" id="breadcrumb"></div>
+</header>
+
+<!-- ══ SIDEBAR ══ -->
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+<aside id="sidebar">
+  <div class="sidebar-header">
+    <span class="sidebar-title">Categories</span>
+    <button class="sidebar-close" id="sidebar-close-btn">✕</button>
+  </div>
+  <a class="sidebar-home-link" href="#" onclick="showHome(); closeSidebar(); return false;">⌂ &nbsp;Home — All Categories</a>
+  <div id="sidebar-cats"></div>
+</aside>
+
+<!-- ══ HOME PAGE ══ -->
+<div class="page active" id="page-home">
+  <div class="home-hero">
+    <h1>Good Music,<br><em>Ranked.</em></h1>
+    <p>Personal rankings across albums, tracks &amp; composers — curated and always expanding.</p>
+  </div>
+  <div class="home-grid" id="home-grid"></div>
+  <footer>
+    <p>Curated with taste. Updated whenever.</p>
+    <p style="color:var(--accent);font-size:0.62rem;letter-spacing:0.1em;">♫ MY MUSIC RANKINGS</p>
+  </footer>
+</div>
+
+<!-- ══ DETAIL PAGE ══ -->
+<div class="page" id="page-detail">
+  <div class="detail-hero" id="detail-hero"></div>
+  <div class="detail-content" id="detail-content"></div>
+  <footer>
+    <p>Curated with taste. Updated whenever.</p>
+    <p style="color:var(--accent);font-size:0.62rem;letter-spacing:0.1em;">♫ MY MUSIC RANKINGS</p>
+  </footer>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+  YOUR DATA — only edit this section!
+
+  HOW TO ADD A NEW CATEGORY:
+    Copy the template block at the bottom, remove the comment
+    markers (slash-asterisk), and fill in your data.
+
+  For each album:
+    spotifyId  →  the ID at the end of a Spotify album URL
+                  open.spotify.com/album/THIS_PART_HERE
+    embed:true →  shows an inline Spotify player
+    embed:false → shows a plain "Open on Spotify" link
+    link        →  use instead of spotifyId for non-Spotify URLs
+══════════════════════════════════════════════════════════ -->
+<script>
+const CATEGORIES = [
+
+  {
+    id: "country",
+    name: "Country",
+    icon: "🤠",
+    top10: [
+      { rank: 1,  title: "Red Headed Stranger",        artist: "Willie Nelson",          year: "1975", spotifyId: "6osMb1ks0rvMGLRpzUgFJV", embed: true  },
+      { rank: 2,  title: "Coat of Many Colors",        artist: "Dolly Parton",           year: "1971", spotifyId: "0GGBxBDJw1lZ3VAgxS2NLY", embed: false },
+      { rank: 3,  title: "Live at Folsom Prison",      artist: "Johnny Cash",            year: "1968", spotifyId: "4oAJJD8JikH58yywEdaFzw", embed: true  },
+      { rank: 4,  title: "Grievous Angel",             artist: "Gram Parsons",           year: "1974", spotifyId: "0eFEAUGRPHpoPJBBWbJyO7", embed: false },
+      { rank: 5,  title: "Guitar Town",                artist: "Steve Earle",            year: "1986", spotifyId: "5HtQmpJH9XMYB8VNrVGHI0", embed: false },
+      { rank: 6,  title: "Wanted! The Outlaws",        artist: "Waylon, Willie & More",  year: "1976", spotifyId: "6SkdwBJOEYU5MDmBjHJhvz", embed: false },
+      { rank: 7,  title: "Trio",                       artist: "Dolly, Linda & Emmylou", year: "1987", spotifyId: "6JKn6CaQQrVMBKllqHg4dD", embed: false },
+      { rank: 8,  title: "At San Quentin",             artist: "Johnny Cash",            year: "1969", spotifyId: "5rTlHNTDqVpSzQToTwbOgX", embed: false },
+      { rank: 9,  title: "Roses in the Snow",          artist: "Emmylou Harris",         year: "1980", spotifyId: "3C5pJxCLjSAKiB1EcsBWph", embed: false },
+      { rank: 10, title: "Will the Circle Be Unbroken",artist: "Nitty Gritty Dirt Band", year: "1972", spotifyId: "5n1KAMOtR6zLFzFvJBPFJQ", embed: false },
+    ],
+    honorableMentions: [
+      { title: "Guitar Town", artist: "Steve Earle",            year: "1986", spotifyId: "5HtQmpJH9XMYB8VNrVGHI0" },
+      { title: "Trio",        artist: "Dolly, Linda & Emmylou", year: "1987", spotifyId: "6JKn6CaQQrVMBKllqHg4dD" },
+    ],
+  },
+
+  {
+    id: "classicrock",
+    name: "Classic Rock",
+    icon: "🎸",
+    top10: [
+      { rank: 1,  title: "Led Zeppelin IV",              artist: "Led Zeppelin",        year: "1971", spotifyId: "5G0G3EfpJCXB6DhvMZFiE2", embed: true  },
+      { rank: 2,  title: "Rumours",                      artist: "Fleetwood Mac",        year: "1977", spotifyId: "1bt6q2SruMsBtcerNVtpZB", embed: false },
+      { rank: 3,  title: "Dark Side of the Moon",        artist: "Pink Floyd",           year: "1973", spotifyId: "4LH4d3cOWNNsVw41Gdy4Dk", embed: true  },
+      { rank: 4,  title: "Hotel California",             artist: "Eagles",               year: "1976", spotifyId: "6OiRh4kttAs1YWglvTcYkB", embed: false },
+      { rank: 5,  title: "Born to Run",                  artist: "Bruce Springsteen",    year: "1975", spotifyId: "0PMasrHdpaoIRsNXEOyrMM", embed: false },
+      { rank: 6,  title: "Abbey Road",                   artist: "The Beatles",          year: "1969", spotifyId: "0ETFjACtuP2ADo6LFhL6HN", embed: false },
+      { rank: 7,  title: "Sticky Fingers",               artist: "The Rolling Stones",   year: "1971", spotifyId: "6YYqONrKNe5xpYjmYFYMHV", embed: false },
+      { rank: 8,  title: "Who's Next",                   artist: "The Who",              year: "1971", spotifyId: "1GBcfXDMJWCBFHlHJxzBjl", embed: false },
+      { rank: 9,  title: "Harvest",                      artist: "Neil Young",           year: "1972", spotifyId: "6Vgp3ZMCsqDzCYCgERZpbH", embed: false },
+      { rank: 10, title: "Physical Graffiti",            artist: "Led Zeppelin",         year: "1975", spotifyId: "2B1Pk5dTGONqd8Jlh6K4T8", embed: false },
+    ],
+    honorableMentions: [
+      { title: "Exile on Main St.",   artist: "The Rolling Stones", year: "1972", spotifyId: "1IhFVQjsGhKEYCGMM8PHNM" },
+      { title: "Layla",               artist: "Derek & the Dominos", year: "1970", spotifyId: "6GjwtEZcfenmOf6l18N7T7" },
+      { title: "Tapestry",            artist: "Carole King",         year: "1971", spotifyId: "2dkhEbRuFtHtFGNVEjqdIT" },
+    ],
+  },
+
+  {
+    id: "jazz",
+    name: "Jazz",
+    icon: "🎷",
+    top10: [
+      { rank: 1,  title: "Kind of Blue",             artist: "Miles Davis",               year: "1959", spotifyId: "1weenld61qoidwYuZ1GESA", embed: true  },
+      { rank: 2,  title: "A Love Supreme",            artist: "John Coltrane",             year: "1965", spotifyId: "0G8F7XXb6rHAcbAr4Bcx3m", embed: true  },
+      { rank: 3,  title: "Mingus Ah Um",              artist: "Charles Mingus",            year: "1959", spotifyId: "1KoJBKkHbLzHNx6WLIrGhF", embed: false },
+      { rank: 4,  title: "Getz/Gilberto",             artist: "Stan Getz & João Gilberto", year: "1964", spotifyId: "2HxHqJOKoKJxJmquaR7wSA", embed: false },
+      { rank: 5,  title: "Time Out",                  artist: "Dave Brubeck Quartet",      year: "1959", spotifyId: "0nTTEAhCZsbbeplyDMIFuA", embed: false },
+      { rank: 6,  title: "Giant Steps",               artist: "John Coltrane",             year: "1960", spotifyId: "69zuZPCpiDKxr68mMQNa2Z", embed: false },
+      { rank: 7,  title: "Maiden Voyage",             artist: "Herbie Hancock",            year: "1965", spotifyId: "1wtHTnVMHBpEm5mypWFPb8", embed: false },
+      { rank: 8,  title: "The Black Saint and the Sinner Lady", artist: "Charles Mingus", year: "1963", spotifyId: "3lMjGnOPAHtHYUxKLBQGBe", embed: false },
+      { rank: 9,  title: "Bitches Brew",              artist: "Miles Davis",               year: "1970", spotifyId: "7aJfoBfoJfVNiJNIgmOoKk", embed: false },
+      { rank: 10, title: "Head Hunters",              artist: "Herbie Hancock",            year: "1973", spotifyId: "3dIXyMNMCOlEALaGE4tIOu", embed: false },
+    ],
+    honorableMentions: [
+      { title: "Speak No Evil",    artist: "Wayne Shorter",    year: "1966", spotifyId: "3XyFsNjqVkEt4Qa67mPgAf" },
+      { title: "Workin'",          artist: "Miles Davis Quintet", year: "1959", spotifyId: "6tCRFRiPUKZTUDHCz8OXLK" },
+    ],
+  },
+
+  {
+    id: "hiphop",
+    name: "Hip-Hop",
+    icon: "🎤",
+    top10: [
+      { rank: 1,  title: "Illmatic",                  artist: "Nas",                  year: "1994", spotifyId: "3kEtdS2pH3F4968iq0uyNK", embed: true  },
+      { rank: 2,  title: "Enter the Wu-Tang (36 Chambers)", artist: "Wu-Tang Clan",   year: "1993", spotifyId: "4m2880jivSbbyEGAKfITCa", embed: false },
+      { rank: 3,  title: "Ready to Die",              artist: "The Notorious B.I.G.", year: "1994", spotifyId: "4LH4d3cOWNNsVw41Gdy4Dk", embed: false },
+      { rank: 4,  title: "The Miseducation of Lauryn Hill", artist: "Lauryn Hill",    year: "1998", spotifyId: "1BZoqQnRune0mW9LkmNTWm", embed: true  },
+      { rank: 5,  title: "Madvillainy",               artist: "Madvillain",           year: "2004", spotifyId: "19bQiwEKhXUBJWY6oV3KZk", embed: false },
+      { rank: 6,  title: "To Pimp a Butterfly",       artist: "Kendrick Lamar",       year: "2015", spotifyId: "7ycBtnsMtyVbbwTfJwRjSP", embed: false },
+      { rank: 7,  title: "My Beautiful Dark Twisted Fantasy", artist: "Kanye West",   year: "2010", spotifyId: "20r762YmB5HeofjMCiPMLv", embed: false },
+      { rank: 8,  title: "Aquemini",                  artist: "OutKast",              year: "1998", spotifyId: "7qPBsKUFPmEPLJoE3WolZ5", embed: false },
+      { rank: 9,  title: "Midnight Marauders",        artist: "A Tribe Called Quest", year: "1993", spotifyId: "5GVKhDRtcSrDVGtdaO3OXd", embed: false },
+      { rank: 10, title: "Reasonable Doubt",          artist: "Jay-Z",                year: "1996", spotifyId: "0c50MHbQJnLFCzqO7yHkBw", embed: false },
+    ],
+    honorableMentions: [
+      { title: "Paul's Boutique",      artist: "Beastie Boys",         year: "1989", spotifyId: "1kmyirVya5fRxdjsPFDM05" },
+      { title: "The Chronic",          artist: "Dr. Dre",              year: "1992", spotifyId: "6G1MoiGMILDOKaFBKEAtVc" },
+      { title: "Donuts",               artist: "J Dilla",              year: "2006", spotifyId: "1x5M7aLMHbCf6OGRBH3RSq" },
+    ],
+  },
+
+  {
+    id: "soul",
+    name: "Soul & R&B",
+    icon: "🎹",
+    top10: [
+      { rank: 1,  title: "What's Going On",                      artist: "Marvin Gaye",            year: "1971", spotifyId: "2v6ANHbGMwYGHRFwbBWZEW", embed: true  },
+      { rank: 2,  title: "I Never Loved a Man the Way I Love You", artist: "Aretha Franklin",     year: "1967", spotifyId: "0VIMmGSdJNkKBJm4ojC7Hl", embed: false },
+      { rank: 3,  title: "There's a Riot Goin' On",               artist: "Sly & the Family Stone", year: "1971", spotifyId: "5hPGbGfrFBHMhIRoaaSLPk", embed: false },
+      { rank: 4,  title: "Songs in the Key of Life",              artist: "Stevie Wonder",          year: "1976", spotifyId: "7CvAfGvq4RlIw0MrBd0Zkp", embed: true  },
+      { rank: 5,  title: "Purple Rain",                           artist: "Prince",                 year: "1984", spotifyId: "3XS6PkqCNSBQrBEcRyaLdg", embed: false },
+      { rank: 6,  title: "Off the Wall",                          artist: "Michael Jackson",        year: "1979", spotifyId: "2PTykFbFTTFt2JEkzjDxRV", embed: false },
+      { rank: 7,  title: "Let's Get It On",                       artist: "Marvin Gaye",            year: "1973", spotifyId: "5b5VoA2ovIXi72URmDSZCQ", embed: false },
+      { rank: 8,  title: "Sign o' the Times",                     artist: "Prince",                 year: "1987", spotifyId: "2uo3pKJzc8HaGfSFRxJIUY", embed: false },
+      { rank: 9,  title: "Lady Soul",                             artist: "Aretha Franklin",        year: "1968", spotifyId: "1fVJpsdBVSLBQVfVnPVQFt", embed: false },
+      { rank: 10, title: "Innervisions",                          artist: "Stevie Wonder",          year: "1973", spotifyId: "22wWKxkqvHjbBiG5MFBbsp", embed: false },
+    ],
+    honorableMentions: [
+      { title: "Off the Wall",         artist: "Michael Jackson",      year: "1979", spotifyId: "2PTykFbFTTFt2JEkzjDxRV" },
+      { title: "I Am... Sasha Fierce", artist: "Beyoncé",              year: "2008", spotifyId: "7dK54iZuOxXFarGhXwEXfF" },
+    ],
+  },
+
+  {
+    id: "electronic",
+    name: "Electronic",
+    icon: "🎛️",
+    top10: [
+      { rank: 1,  title: "Homework",                     artist: "Daft Punk",          year: "1997", spotifyId: "4TUCjMRIAslLKsVPRGU9tR", embed: true  },
+      { rank: 2,  title: "Selected Ambient Works 85–92", artist: "Aphex Twin",         year: "1992", spotifyId: "7aNclGRxTysfh6z0d8671k", embed: false },
+      { rank: 3,  title: "Music Has the Right to Children", artist: "Boards of Canada",year: "1998", spotifyId: "1gIC63gC3B7o7FfpPCD5ij", embed: true  },
+      { rank: 4,  title: "Random Access Memories",       artist: "Daft Punk",          year: "2013", spotifyId: "4m2880jivSbbyEGAKfITCa", embed: false },
+      { rank: 5,  title: "Vespertine",                   artist: "Björk",              year: "2001", spotifyId: "0PorGqZkMiAMsgxrFOoJK7", embed: false },
+      { rank: 6,  title: "Discovery",                    artist: "Daft Punk",          year: "2001", spotifyId: "2noRn2Aes5aoNVsU6iWThc", embed: false },
+      { rank: 7,  title: "Dummy",                        artist: "Portishead",         year: "1994", spotifyId: "3539EbNgIdEDGBKkUf4wno", embed: false },
+      { rank: 8,  title: "Blue Lines",                   artist: "Massive Attack",     year: "1991", spotifyId: "4BumDRzEWERywV2xcfbrv9", embed: false },
+      { rank: 9,  title: "Endtroducing.....",            artist: "DJ Shadow",          year: "1996", spotifyId: "1fcdFSFT03HOlMuRRaJqzA", embed: false },
+      { rank: 10, title: "Trans-Europe Express",         artist: "Kraftwerk",          year: "1977", spotifyId: "6DlLnKvSFOxbYrFxjFqZ2f", embed: false },
+    ],
+    honorableMentions: [
+      { title: "Dummy",                artist: "Portishead",           year: "1994", spotifyId: "3539EbNgIdEDGBKkUf4wno" },
+      { title: "Blue Lines",           artist: "Massive Attack",       year: "1991", spotifyId: "4BumDRzEWERywV2xcfbrv9" },
+    ],
+  },
+
+  {
+    id: "folk",
+    name: "Folk & Americana",
+    icon: "🪕",
+    top10: [
+      { rank: 1,  title: "Blood on the Tracks",         artist: "Bob Dylan",           year: "1975", spotifyId: "4WD4pslu83FF6oMa7FBBNl", embed: true  },
+      { rank: 2,  title: "Blue",                        artist: "Joni Mitchell",        year: "1971", spotifyId: "1vz94WpXDVYIEKjarXnD7H", embed: true  },
+      { rank: 3,  title: "The Freewheelin' Bob Dylan",  artist: "Bob Dylan",            year: "1963", spotifyId: "0o0P9R4N5hy8wEPQFaYaCk", embed: false },
+      { rank: 4,  title: "For Emma, Forever Ago",       artist: "Bon Iver",             year: "2008", spotifyId: "3TZmRpNqIAyNgtpkNdEyT7", embed: false },
+      { rank: 5,  title: "Illinois",                    artist: "Sufjan Stevens",       year: "2005", spotifyId: "2tvGplBMGCNRnmkj0KePFn", embed: false },
+      { rank: 6,  title: "Carrie & Lowell",             artist: "Sufjan Stevens",       year: "2015", spotifyId: "0YXnbOEDPbe5JKuEpbpzVQ", embed: false },
+      { rank: 7,  title: "Court and Spark",             artist: "Joni Mitchell",        year: "1974", spotifyId: "0REVZ2SiMgHSnWS6mBLbqN", embed: false },
+      { rank: 8,  title: "Stardust",                    artist: "Willie Nelson",        year: "1978", spotifyId: "5hS3D3PQKX9OWQH5CQXB18", embed: false },
+      { rank: 9,  title: "John Prine",                  artist: "John Prine",           year: "1971", spotifyId: "3hYcHD7MqtFvdCNOhLRuof", embed: false },
+      { rank: 10, title: "Sweet Baby James",            artist: "James Taylor",         year: "1970", spotifyId: "4TnbmjvCCaNJefxYKNdElf", embed: false },
+    ],
+    honorableMentions: [
+      { title: "Carrie & Lowell",      artist: "Sufjan Stevens",       year: "2015", spotifyId: "0YXnbOEDPbe5JKuEpbpzVQ" },
+      { title: "The Stranger",         artist: "Billy Joel",           year: "1977", spotifyId: "3uyREPPgBBMbVSGkFyDkPD" },
+    ],
+  },
+
+  // ── TEMPLATE — copy & uncomment to add a new category ──
+  /*
+  {
+    id: "chopin",          // unique id, no spaces
+    name: "Chopin",        // display name
+    icon: "🎹",
+    type: "tracks",        // "albums" (default) or "tracks"
+    subtitle: "Optional short description shown on the detail page",
+    top10: [
+      {
+        rank: 1,
+        title: "Track or Album Title",
+        artist: "Performer / Artist",
+        meta: "Optional extra line — e.g. Op. 28 · Preludes",  // only for tracks
+        year: "1990",
+        spotifyId: "TRACK_OR_ALBUM_ID_HERE",
+        embed: true,        // true = inline player, false = link only
+        // spotifyType: "track"  // override per entry if mixing tracks & albums
+      },
+    ],
+    honorableMentions: [
+      { title: "...", artist: "...", year: "...", spotifyId: "..." },
+    ],
+  },
+  */
+
+  {
+    id: "chopin",
+    name: "Chopin",
+    icon: "🎹",
+    type: "tracks",
+    subtitle: "Frédéric Chopin · Top 10 pieces — essential listening for piano.",
+    top10: [
+      { rank: 1,  title: "Ballade No. 1 in G minor, Op. 23",          artist: "Krystian Zimerman",    meta: "Op. 23",        year: "1987", spotifyId: "3dPDGqHnFMNpHjIDGqzXIM", embed: true  },
+      { rank: 2,  title: "Nocturne in E-flat major, Op. 9 No. 2",      artist: "Arthur Rubinstein",   meta: "Op. 9 No. 2",   year: "1965", spotifyId: "5DV0dFQ0CuDJJTiGkHHhcZ", embed: true  },
+      { rank: 3,  title: "Fantaisie-Impromptu in C-sharp minor, Op. 66", artist: "Martha Argerich",  meta: "Op. 66",        year: "1975", spotifyId: "2BHj31ufdEqVBFAFPeRbmK", embed: false },
+      { rank: 4,  title: 'Étude in C minor, Op. 10 No. 12 (Revolutionary)', artist: "Vladimir Ashkenazy", meta: "Op. 10 No. 12", year: "1975", spotifyId: "5VGpNHvfkbJJP15BzIxpAm", embed: false },
+      { rank: 5,  title: "Piano Sonata No. 2 in B-flat minor, Op. 35", artist: "Maurizio Pollini",   meta: "Op. 35",        year: "1984", spotifyId: "4gAaJPBD5cxGMpSCvfS3nI", embed: false },
+      { rank: 6,  title: 'Ballade No. 3 in A-flat major, Op. 47',      artist: "Krystian Zimerman",  meta: "Op. 47",        year: "1987", spotifyId: "5v5QJqhJdwGJzPjMpYRLMX", embed: false },
+      { rank: 7,  title: "Nocturne in C-sharp minor, Op. posth.",       artist: "Arthur Rubinstein",  meta: "Op. posth.",    year: "1965", spotifyId: "0hj1LQCJRPOIWbEUX2xHUI", embed: false },
+      { rank: 8,  title: "Scherzo No. 2 in B-flat minor, Op. 31",      artist: "Martha Argerich",    meta: "Op. 31",        year: "1975", spotifyId: "6gVZJjorKMEriHpnmAHqhp", embed: false },
+      { rank: 9,  title: 'Prelude in D-flat major, Op. 28 No. 15 (Raindrop)', artist: "Daniel Barenboim", meta: "Op. 28 No. 15", year: "1981", spotifyId: "4ePULBPzUvBOEcCWYNvUQ2", embed: false },
+      { rank: 10, title: 'Étude in E major, Op. 10 No. 3 (Tristesse)', artist: "Vladimir Ashkenazy", meta: "Op. 10 No. 3",  year: "1975", spotifyId: "5PiXiVFYSAMzxlCvWNnDXr", embed: false },
+    ],
+    honorableMentions: [
+      { title: "Waltz in C-sharp minor, Op. 64 No. 2", artist: "Arthur Rubinstein", year: "1965", spotifyId: "3nGSsqRGarZi0hFIbpuJQq" },
+      { title: "Mazurka in B-flat major, Op. 7 No. 1", artist: "Krystian Zimerman", year: "1987", spotifyId: "3NRDE5yJzGKe5MNs8MXBRX" },
+      { title: 'Polonaise in A-flat major, Op. 53 (Heroic)', artist: "Maurizio Pollini", year: "1984", spotifyId: "1JxNOxFoXQQ2rDUdRSDoGS" },
+    ],
+  },
+
+];
+</script>
+
+<!-- ══ RENDER ENGINE — do not edit below this line ══ -->
+<script>
+// Spotify URL helpers — handles albums, tracks, and artists
+function spotifyEmbedUrl(id, type = 'album') {
+  return `https://open.spotify.com/embed/${type}/${id}?utm_source=generator&theme=0`;
+}
+function spotifyOpenUrl(id, type = 'album') {
+  return `https://open.spotify.com/${type}/${id}`;
+}
+
+const rankClass = r => r === 1 ? 'gold' : r === 2 ? 'silver' : r === 3 ? 'bronze' : '';
+
+// Resolve the spotify type for an entry:
+// category type drives the default, but individual entries can override with entry.spotifyType
+function resolveSpotifyType(cat, entry) {
+  if (entry.spotifyType) return entry.spotifyType;
+  if (cat.type === 'tracks') return 'track';
+  return 'album';
+}
+
+// ── Build sidebar ──
+function buildSidebar() {
+  const container = document.getElementById('sidebar-cats');
+  CATEGORIES.forEach(cat => {
+    const group = document.createElement('div');
+    group.className = 'sidebar-group';
+    group.id = `sidebar-group-${cat.id}`;
+
+    const trigger = document.createElement('button');
+    trigger.className = 'sidebar-group-trigger';
+    trigger.id = `sidebar-trigger-${cat.id}`;
+    // show a small badge for the type
+    const badge = cat.type === 'tracks' ? ' <span style="font-size:0.55rem;opacity:0.5;letter-spacing:0.1em">TRACKS</span>' : '';
+    trigger.innerHTML = `<span>${cat.icon}</span><span>${cat.name}${badge}</span><span class="chevron">▶</span>`;
+
+    const sub = document.createElement('div');
+    sub.className = 'sidebar-sub';
+
+    const fullLink = document.createElement('a');
+    fullLink.href = '#';
+    fullLink.textContent = `Full Top ${cat.top10.length}`;
+    fullLink.onclick = e => { e.preventDefault(); showDetail(cat.id); closeSidebar(); };
+    sub.appendChild(fullLink);
+
+    trigger.onclick = () => {
+      const isOpen = sub.classList.contains('open');
+      container.querySelectorAll('.sidebar-sub').forEach(s => s.classList.remove('open'));
+      container.querySelectorAll('.sidebar-group-trigger').forEach(t => t.classList.remove('expanded'));
+      if (!isOpen) { sub.classList.add('open'); trigger.classList.add('expanded'); }
+    };
+
+    group.appendChild(trigger);
+    group.appendChild(sub);
+    container.appendChild(group);
+  });
+}
+
+// ── Sidebar open/close ──
+function openSidebar()  {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').classList.add('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+
+document.getElementById('hamburger-btn').onclick = openSidebar;
+document.getElementById('sidebar-close-btn').onclick = closeSidebar;
+document.getElementById('sidebar-overlay').onclick = closeSidebar;
+
+// ── Build home grid ──
+function buildHome() {
+  const grid = document.getElementById('home-grid');
+  grid.innerHTML = CATEGORIES.map(cat => {
+    const isTrackList = cat.type === 'tracks';
+    const top3 = cat.top10.slice(0, 3);
+    const rows = top3.map(a => `
+      <div class="preview-row">
+        <div class="preview-rank ${rankClass(a.rank)}">${String(a.rank).padStart(2,'0')}</div>
+        <div class="preview-info">
+          <div class="preview-title">${a.title}</div>
+          <div class="preview-artist">${a.artist}</div>
+        </div>
+        ${a.year ? `<div class="preview-year">${a.year}</div>` : ''}
+      </div>`).join('');
+
+    const typeBadge = isTrackList
+      ? `<span style="font-size:0.55rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-left:auto;padding:0.2rem 0.5rem;border:1px solid var(--border);">Tracks</span>`
+      : '';
+
+    return `
+      <div class="preview-card">
+        <div class="preview-cat-header">
+          <span class="preview-cat-icon">${cat.icon}</span>
+          <span class="preview-cat-name">${cat.name}</span>
+          ${typeBadge}
+        </div>
+        <div class="preview-top3">${rows}</div>
+        <button class="read-more-btn" onclick="showDetail('${cat.id}')">
+          Full Top ${cat.top10.length} &nbsp;→
+        </button>
+      </div>`;
+  }).join('');
+}
+
+// ── Build media block for a single entry ──
+function buildMedia(cat, a) {
+  const sType = resolveSpotifyType(cat, a);
+  // embed height: tracks are slightly taller (152px) to show the waveform; albums use compact 80px
+  const embedH = sType === 'track' ? 152 : 80;
+
+  if (a.spotifyId && a.embed)
+    return `<div class="spotify-embed"><iframe src="${spotifyEmbedUrl(a.spotifyId, sType)}" width="100%" height="${embedH}" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe></div>`;
+  if (a.spotifyId)
+    return `<a class="spotify-link" href="${spotifyOpenUrl(a.spotifyId, sType)}" target="_blank" rel="noopener">▶ Open on Spotify</a>`;
+  if (a.link)
+    return `<a class="spotify-link" href="${a.link}" target="_blank" rel="noopener">▶ Listen</a>`;
+  return '';
+}
+
+// ── Show detail page ──
+function showDetail(id) {
+  const cat = CATEGORIES.find(c => c.id === id);
+  if (!cat) return;
+
+  const isTrackList = cat.type === 'tracks';
+  const listLabel   = isTrackList ? 'Tracks' : 'Albums';
+
+  // Hero — show subtitle if defined
+  const subtitle = cat.subtitle ? `<p style="margin-top:0.75rem;font-size:0.75rem;color:var(--muted);letter-spacing:0.05em;">${cat.subtitle}</p>` : '';
+  document.getElementById('detail-hero').innerHTML = `
+    <button class="back-btn" onclick="showHome()">← All Categories</button>
+    <div class="detail-bg-text">${cat.icon}</div>
+    <h2><span>${cat.icon}</span> ${cat.name}</h2>
+    ${subtitle}`;
+
+  // Ranked list
+  const ranked = cat.top10.map(a => {
+    // extra meta line: for tracks show performer/op info if present
+    const meta = a.meta ? `<div style="font-size:0.65rem;color:var(--muted);margin-bottom:0.5rem;font-style:italic;">${a.meta}</div>` : '';
+
+    return `
+      <div class="album-row">
+        <div class="album-rank-col">
+          <div class="album-rank-num ${rankClass(a.rank)}">${String(a.rank).padStart(2,'0')}</div>
+        </div>
+        <div class="album-main-col">
+          <div class="album-row-title">${a.title}</div>
+          <div class="album-row-artist">${a.artist}</div>
+          ${meta}
+          ${a.year ? `<div class="album-row-year">${a.year}</div>` : ''}
+          ${buildMedia(cat, a)}
+        </div>
+      </div>`;
+  }).join('');
+
+  // Honorable mentions
+  let hmSection = '';
+  if (cat.honorableMentions && cat.honorableMentions.length) {
+    const sType = cat.type === 'tracks' ? 'track' : 'album';
+    const cards = cat.honorableMentions.map(a => {
+      const lnk = a.spotifyId
+        ? `<a class="hm-link" href="${spotifyOpenUrl(a.spotifyId, a.spotifyType || sType)}" target="_blank" rel="noopener">▶ Spotify</a>`
+        : (a.link ? `<a class="hm-link" href="${a.link}" target="_blank" rel="noopener">▶ Listen</a>` : '');
+      return `<div class="hm-card"><div class="hm-title">${a.title}</div><div class="hm-artist">${a.artist}${a.year ? ' · '+a.year : ''}</div>${lnk}</div>`;
+    }).join('');
+    hmSection = `<div class="section-label" style="margin-top:2.5rem;">Honorable Mentions</div><div class="hm-grid">${cards}</div>`;
+  }
+
+  document.getElementById('detail-content').innerHTML = `
+    <div class="section-label">Top ${cat.top10.length} ${listLabel}</div>
+    <div class="ranked-list">${ranked}</div>
+    ${hmSection}`;
+
+  // Breadcrumb
+  document.getElementById('breadcrumb').innerHTML =
+    `<span>All</span><span class="sep">/</span><span class="crumb-active">${cat.icon} ${cat.name}</span>`;
+
+  // Highlight sidebar trigger
+  document.querySelectorAll('.sidebar-group-trigger').forEach(t => t.classList.remove('active'));
+  const trig = document.getElementById(`sidebar-trigger-${id}`);
+  if (trig) trig.classList.add('active');
+
+  switchPage('detail');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── Show home ──
+function showHome() {
+  document.getElementById('breadcrumb').innerHTML = '';
+  document.querySelectorAll('.sidebar-group-trigger').forEach(t => t.classList.remove('active'));
+  switchPage('home');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── Switch page helper ──
+function switchPage(name) {
+  document.querySelectorAll('.page').forEach(p => {
+    p.classList.remove('active');
+    p.style.animation = 'none';
+  });
+  const target = document.getElementById(`page-${name}`);
+  target.offsetHeight; // reflow
+  target.style.animation = '';
+  target.classList.add('active');
+}
+
+// ── Init ──
+buildSidebar();
+buildHome();
+</script>
+</body>
+</html>
