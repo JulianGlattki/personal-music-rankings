@@ -1,5 +1,5 @@
 # Personal Music Rankings
 
-TBD: link
+https://julianglattki.github.io/personal-music-rankings/
 
 Vibe coded with Claude.
