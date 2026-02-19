@@ -770,32 +770,32 @@ function csvRowToEntry(row) {
 
 // ── Load a category's entries (CSV or inline) ────────────────────────────────
 async function loadCategory(cat) {
+  let allEntries = [];
+
   if (cat.src) {
     try {
       const resp = await fetch(cat.src);
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const text = await resp.text();
       const rows = parseCSV(text);
-      cat._entries = rows.map(csvRowToEntry);
+      allEntries = rows.map(csvRowToEntry);
       cat._playlistUrl = rows[0]?.playlist_url || '';
     } catch (e) {
       console.warn(`Could not load ${cat.src}:`, e);
-      cat._entries = [];
       cat._playlistUrl = '';
     }
   } else {
-    // inline top: [...] — normalise to same shape
-    cat._entries = (cat.top || []).map(a => ({
-      title:     a.title     || '',
-      artist:    a.artist    || '',
-      year:      a.year      || '',
-      spotifyId: a.spotifyId || '',
-      type:      a.type      || (cat.type === 'tracks' ? 'track' : 'album'),
-      embed:     a.embed !== false,
-      cover:     a.cover     || '',
-      playlist_url: '',
-    }));
     cat._playlistUrl = '';
+  }
+
+  // Split into ranked entries and honorable mentions based on optional `top` limit
+  const limit = typeof cat.top === 'number' ? cat.top : null;
+  if (limit !== null) {
+    cat._entries          = allEntries.slice(0, limit);
+    cat._honorableMentions = allEntries.slice(limit);
+  } else {
+    cat._entries           = allEntries;
+    cat._honorableMentions = cat.honorableMentions || [];
   }
 }
 
@@ -932,8 +932,9 @@ function showDetail(id) {
   }).join('');
 
   let hmSection = '';
-  if (cat.honorableMentions && cat.honorableMentions.length) {
-    const cards = cat.honorableMentions.map(a => {
+  const hmEntries = cat._honorableMentions || cat.honorableMentions || [];
+  if (hmEntries.length) {
+    const cards = hmEntries.map(a => {
       const lnk = a.spotifyId
         ? `<a class="hm-link" href="${spotifyOpenUrl(a.spotifyId, a.type || 'album')}" target="_blank" rel="noopener">▶ Spotify</a>`
         : (a.link ? `<a class="hm-link" href="${a.link}" target="_blank" rel="noopener">▶ Listen</a>` : '');
