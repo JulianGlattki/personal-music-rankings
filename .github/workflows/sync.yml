@@ -1,0 +1,64 @@
+name: Sync Spotify Playlist
+
+on:
+  workflow_dispatch:
+    inputs:
+      category_id:
+        description: 'Category ID to sync — must match an "id" in playlists.json (or "all" to sync everything)'
+        required: true
+        default: 'all'
+        type: string
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run sync script
+        env:
+          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
+          CATEGORY_ID: ${{ github.event.inputs.category_id }}
+        run: python scripts/sync_playlist.py
+
+      - name: Check for changes
+        id: changes
+        run: |
+          git diff --quiet data/ || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        if: steps.changes.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: sync/${{ github.event.inputs.category_id }}-${{ github.run_number }}
+          title: "Sync: ${{ github.event.inputs.category_id }} updated"
+          body: |
+            Automated sync from Spotify.
+
+            **Category:** `${{ github.event.inputs.category_id }}`
+
+            > Category config is read from `playlists.json` — no manual input needed.
+
+            ---
+            Before merging, you can edit these fields directly in the CSV diff:
+            - `year_override` — if Spotify's release year is wrong (remasters, reissues)
+            - `title_override` — if the title has unwanted suffixes (Remastered, Single Version, etc.)
+
+            Both values are preserved on every future sync.
+          commit-message: "sync: update ${{ github.event.inputs.category_id }}"
+          delete-branch: true

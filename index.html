@@ -299,6 +299,29 @@
       border-top: 1px solid var(--border);
     }
 
+    /* loading state */
+    .loading-card {
+      background: var(--surface);
+      padding: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: var(--muted);
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+    }
+
+    .loading-spinner {
+      width: 14px; height: 14px;
+      border: 1.5px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
     .preview-card {
       background: var(--surface);
       padding: 2rem 2rem 1.5rem;
@@ -356,6 +379,14 @@
     .preview-rank.silver { color: rgba(185,185,190,0.45); }
     .preview-rank.bronze { color: rgba(205,127,50,0.45); }
 
+    .preview-cover {
+      width: 38px; height: 38px;
+      object-fit: cover;
+      border-radius: 2px;
+      flex-shrink: 0;
+      background: var(--border);
+    }
+
     .preview-info { flex: 1; min-width: 0; }
 
     .preview-title {
@@ -380,6 +411,13 @@
       flex-shrink: 0;
     }
 
+    .preview-card-footer {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
     .read-more-btn {
       display: inline-flex;
       align-items: center;
@@ -394,12 +432,42 @@
       cursor: pointer;
       font-family: 'DM Mono', monospace;
       transition: all 0.15s;
+      text-decoration: none;
     }
 
     .read-more-btn:hover {
       background: rgba(200,169,110,0.08);
       border-color: var(--accent);
       color: var(--accent2);
+    }
+
+    /* Spotify playlist button */
+    .playlist-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.62rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #1DB954;
+      background: none;
+      border: 1px solid rgba(29,185,84,0.25);
+      padding: 0.5rem 0.85rem;
+      cursor: pointer;
+      font-family: 'DM Mono', monospace;
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+
+    .playlist-btn:hover {
+      background: rgba(29,185,84,0.08);
+      border-color: #1DB954;
+    }
+
+    .playlist-btn svg {
+      width: 11px; height: 11px;
+      fill: #1DB954;
+      flex-shrink: 0;
     }
 
     /* ══ DETAIL HERO ══ */
@@ -443,6 +511,13 @@
       white-space: nowrap;
     }
 
+    .detail-hero-top {
+      display: flex;
+      align-items: flex-end;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
     .detail-hero h2 {
       font-family: 'Playfair Display', serif;
       font-size: clamp(2rem, 6vw, 4.5rem);
@@ -476,8 +551,7 @@
 
     .album-row {
       background: var(--surface);
-      display: grid;
-      grid-template-columns: 60px 1fr;
+      display: flex;
       align-items: stretch;
       transition: background 0.15s;
     }
@@ -490,6 +564,8 @@
       justify-content: center;
       border-right: 1px solid var(--border);
       padding: 1.25rem 0.5rem;
+      min-width: 60px;
+      flex-shrink: 0;
     }
 
     .album-rank-num {
@@ -506,7 +582,22 @@
     .album-rank-num.silver { color: rgba(185,185,190,0.4) !important; }
     .album-rank-num.bronze { color: rgba(205,127,50,0.4) !important; }
 
-    .album-main-col { padding: 1.25rem 1.5rem; }
+    .album-cover-col {
+      width: 80px;
+      flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      background: var(--surface2);
+      overflow: hidden;
+    }
+
+    .album-cover {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .album-main-col { padding: 1.25rem 1.5rem; flex: 1; min-width: 0; }
 
     .album-row-title {
       font-family: 'Playfair Display', serif;
@@ -603,7 +694,9 @@
     <h1>Good Music,<br><em>Ranked.</em></h1>
     <p>Personal rankings across albums, tracks &amp; composers — curated and always expanding.</p>
   </div>
-  <div class="home-grid" id="home-grid"></div>
+  <div class="home-grid" id="home-grid">
+    <!-- filled by JS after CSV loads -->
+  </div>
   <footer>
     <p>Curated with taste. Updated whenever.</p>
     <p style="color:var(--accent);font-size:0.62rem;letter-spacing:0.1em;">♫ MY MUSIC RANKINGS</p>
@@ -620,57 +713,114 @@
   </footer>
 </div>
 
-<!-- ══════════════════════════════════════════════════════════
-  YOUR DATA — only edit this section!
-
-  HOW TO ADD A NEW CATEGORY:
-    Copy the template block at the bottom, remove the comment
-    markers (slash-asterisk), and fill in your data.
-
-  For each album:
-    spotifyId  →  the ID at the end of a Spotify album URL
-                  open.spotify.com/album/THIS_PART_HERE
-    embed:true →  shows an inline Spotify player
-    embed:false → shows a plain "Open on Spotify" link
-    link        →  use instead of spotifyId for non-Spotify URLs
-══════════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════════════════════════════
+  All categories are defined in playlists.json — edit that file instead.
+  The website loads it automatically on startup.
+══════════════════════════════════════════════════════════════════ -->
 <script>
-const CATEGORIES = [
-  {
-    id: "country",
-    name: "Country",
-    icon: "🤠",
-    top10: [
-      { rank: 1,  title: "Gunfighter Ballads And Trail Songs", artist: "Marty Robbins", year: "1959", spotifyId: "3kQpBS26lAj0A0VGl1snRl", embed: true  },
-      { rank: 2,  title: "Bed of Roses",  artist: "The Statler Brothers", year: "1970", spotifyId: "13eUVPkXL3pIaSMz3tghDp", embed: true },
-      { rank: 3,  title: "Shotgun Willie", artist: "Willie Nelson", year: "1973", spotifyId: "6ja7Fceq3F7Igb2DrLKN6y", embed: true  },
-    ],
-    honorableMentions: [],
-  },
-];
+// CATEGORIES is populated at runtime from playlists.json — see init block below
+let CATEGORIES = [];
 </script>
 
-<!-- ══ RENDER ENGINE — do not edit below this line ══ -->
+<!-- ══ RENDER ENGINE ══ -->
 <script>
-// Spotify URL helpers — handles albums, tracks, and artists
-function spotifyEmbedUrl(id, type = 'album') {
-  return `https://open.spotify.com/embed/${type}/${id}?utm_source=generator&theme=0`;
-}
-function spotifyOpenUrl(id, type = 'album') {
-  return `https://open.spotify.com/${type}/${id}`;
-}
+// ── Spotify helpers ──────────────────────────────────────────────────────────
+const spotifyEmbedUrl = (id, type = 'album') =>
+  `https://open.spotify.com/embed/${type}/${id}?utm_source=generator&theme=0`;
+const spotifyOpenUrl = (id, type = 'album') =>
+  `https://open.spotify.com/${type}/${id}`;
 
 const rankClass = r => r === 1 ? 'gold' : r === 2 ? 'silver' : r === 3 ? 'bronze' : '';
 
-// Resolve the spotify type for an entry:
-// category type drives the default, but individual entries can override with entry.spotifyType
-function resolveSpotifyType(cat, entry) {
-  if (entry.spotifyType) return entry.spotifyType;
-  if (cat.type === 'tracks') return 'track';
-  return 'album';
+const SPOTIFY_ICON = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>`;
+
+// ── CSV parser ───────────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h => h.trim());
+  return lines.slice(1).map(line => {
+    // Handle commas inside quoted fields
+    const values = [];
+    let cur = '', inQ = false;
+    for (const ch of line) {
+      if (ch === '"') { inQ = !inQ; }
+      else if (ch === ',' && !inQ) { values.push(cur.trim()); cur = ''; }
+      else { cur += ch; }
+    }
+    values.push(cur.trim());
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = values[i] ?? '');
+    return obj;
+  });
 }
 
-// ── Build sidebar ──
+function csvRowToEntry(row) {
+  return {
+    title:     row.title_override || row.title || '',
+    artist:    row.artist    || '',
+    year:      row.year_override || row.year_spotify || '',
+    spotifyId: row.spotifyId || '',
+    type:      row.type      || 'album',
+    embed:     row.embed === 'true',
+    cover:     row.cover     || '',
+    playlist_url: row.playlist_url || '',
+  };
+}
+
+// ── Load a category's entries (CSV or inline) ────────────────────────────────
+async function loadCategory(cat) {
+  if (cat.src) {
+    try {
+      const resp = await fetch(cat.src);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const text = await resp.text();
+      const rows = parseCSV(text);
+      cat._entries = rows.map(csvRowToEntry);
+      cat._playlistUrl = rows[0]?.playlist_url || '';
+    } catch (e) {
+      console.warn(`Could not load ${cat.src}:`, e);
+      cat._entries = [];
+      cat._playlistUrl = '';
+    }
+  } else {
+    // inline top: [...] — normalise to same shape
+    cat._entries = (cat.top || []).map(a => ({
+      title:     a.title     || '',
+      artist:    a.artist    || '',
+      year:      a.year      || '',
+      spotifyId: a.spotifyId || '',
+      type:      a.type      || (cat.type === 'tracks' ? 'track' : 'album'),
+      embed:     a.embed !== false,
+      cover:     a.cover     || '',
+      playlist_url: '',
+    }));
+    cat._playlistUrl = '';
+  }
+}
+
+// ── Playlist button ──────────────────────────────────────────────────────────
+function playlistBtn(url) {
+  if (!url) return '';
+  return `<a class="playlist-btn" href="${url}" target="_blank" rel="noopener">
+    ${SPOTIFY_ICON} Open Playlist
+  </a>`;
+}
+
+// ── Media block ──────────────────────────────────────────────────────────────
+function buildMedia(entry) {
+  const sType = entry.type || 'album';
+  const embedH = sType === 'track' ? 152 : 80;
+  if (entry.spotifyId && entry.embed)
+    return `<div class="spotify-embed"><iframe src="${spotifyEmbedUrl(entry.spotifyId, sType)}" width="100%" height="${embedH}" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe></div>`;
+  if (entry.spotifyId)
+    return `<a class="spotify-link" href="${spotifyOpenUrl(entry.spotifyId, sType)}" target="_blank" rel="noopener">▶ Open on Spotify</a>`;
+  if (entry.link)
+    return `<a class="spotify-link" href="${entry.link}" target="_blank" rel="noopener">▶ Listen</a>`;
+  return '';
+}
+
+// ── Build sidebar ────────────────────────────────────────────────────────────
 function buildSidebar() {
   const container = document.getElementById('sidebar-cats');
   CATEGORIES.forEach(cat => {
@@ -681,16 +831,14 @@ function buildSidebar() {
     const trigger = document.createElement('button');
     trigger.className = 'sidebar-group-trigger';
     trigger.id = `sidebar-trigger-${cat.id}`;
-    // show a small badge for the type
-    const badge = cat.type === 'tracks' ? ' <span style="font-size:0.55rem;opacity:0.5;letter-spacing:0.1em">TRACKS</span>' : '';
-    trigger.innerHTML = `<span>${cat.icon}</span><span>${cat.name}${badge}</span><span class="chevron">▶</span>`;
+    trigger.innerHTML = `<span>${cat.icon}</span><span>${cat.name}</span><span class="chevron">▶</span>`;
 
     const sub = document.createElement('div');
     sub.className = 'sidebar-sub';
 
     const fullLink = document.createElement('a');
     fullLink.href = '#';
-    fullLink.textContent = `Full Top ${cat.top10.length}`;
+    fullLink.textContent = `Full Top ${cat._entries?.length ?? '…'}`;
     fullLink.onclick = e => { e.preventDefault(); showDetail(cat.id); closeSidebar(); };
     sub.appendChild(fullLink);
 
@@ -707,113 +855,89 @@ function buildSidebar() {
   });
 }
 
-// ── Sidebar open/close ──
-function openSidebar()  {
-  document.getElementById('sidebar').classList.add('open');
-  document.getElementById('sidebar-overlay').classList.add('open');
-}
-function closeSidebar() {
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sidebar-overlay').classList.remove('open');
-}
-
-document.getElementById('hamburger-btn').onclick = openSidebar;
-document.getElementById('sidebar-close-btn').onclick = closeSidebar;
-document.getElementById('sidebar-overlay').onclick = closeSidebar;
-
-// ── Build home grid ──
+// ── Build home grid ──────────────────────────────────────────────────────────
 function buildHome() {
   const grid = document.getElementById('home-grid');
   grid.innerHTML = CATEGORIES.map(cat => {
-    const isTrackList = cat.type === 'tracks';
-    const top3 = cat.top10.slice(0, 3);
-    const rows = top3.map(a => `
-      <div class="preview-row">
-        <div class="preview-rank ${rankClass(a.rank)}">${String(a.rank).padStart(2,'0')}</div>
-        <div class="preview-info">
-          <div class="preview-title">${a.title}</div>
-          <div class="preview-artist">${a.artist}</div>
-        </div>
-        ${a.year ? `<div class="preview-year">${a.year}</div>` : ''}
-      </div>`).join('');
+    const entries = cat._entries || [];
+    const top3 = entries.slice(0, 3);
 
-    const typeBadge = isTrackList
-      ? `<span style="font-size:0.55rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-left:auto;padding:0.2rem 0.5rem;border:1px solid var(--border);">Tracks</span>`
-      : '';
+    const rows = top3.map((a, i) => {
+      const rank = i + 1;
+      return `
+        <div class="preview-row">
+          <div class="preview-rank ${rankClass(rank)}">${String(rank).padStart(2,'0')}</div>
+          ${a.cover ? `<img class="preview-cover" src="${a.cover}" alt="${a.title}" loading="lazy">` : ''}
+          <div class="preview-info">
+            <div class="preview-title">${a.title}</div>
+            <div class="preview-artist">${a.artist}</div>
+          </div>
+          ${a.year ? `<div class="preview-year">${a.year}</div>` : ''}
+        </div>`;
+    }).join('');
 
     return `
       <div class="preview-card">
         <div class="preview-cat-header">
           <span class="preview-cat-icon">${cat.icon}</span>
           <span class="preview-cat-name">${cat.name}</span>
-          ${typeBadge}
         </div>
         <div class="preview-top3">${rows}</div>
-        <button class="read-more-btn" onclick="showDetail('${cat.id}')">
-          Full Top ${cat.top10.length} &nbsp;→
-        </button>
+        <div class="preview-card-footer">
+          <button class="read-more-btn" onclick="showDetail('${cat.id}')">
+            Full Top ${entries.length} &nbsp;→
+          </button>
+          ${playlistBtn(cat._playlistUrl)}
+        </div>
       </div>`;
   }).join('');
 }
 
-// ── Build media block for a single entry ──
-function buildMedia(cat, a) {
-  const sType = resolveSpotifyType(cat, a);
-  // embed height: tracks are slightly taller (152px) to show the waveform; albums use compact 80px
-  const embedH = sType === 'track' ? 152 : 80;
-
-  if (a.spotifyId && a.embed)
-    return `<div class="spotify-embed"><iframe src="${spotifyEmbedUrl(a.spotifyId, sType)}" width="100%" height="${embedH}" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe></div>`;
-  if (a.spotifyId)
-    return `<a class="spotify-link" href="${spotifyOpenUrl(a.spotifyId, sType)}" target="_blank" rel="noopener">▶ Open on Spotify</a>`;
-  if (a.link)
-    return `<a class="spotify-link" href="${a.link}" target="_blank" rel="noopener">▶ Listen</a>`;
-  return '';
-}
-
-// ── Show detail page ──
+// ── Show detail page ─────────────────────────────────────────────────────────
 function showDetail(id) {
   const cat = CATEGORIES.find(c => c.id === id);
   if (!cat) return;
 
-  const isTrackList = cat.type === 'tracks';
-  const listLabel   = isTrackList ? 'Tracks' : 'Albums';
+  const entries = cat._entries || [];
+  const subtitle = cat.subtitle
+    ? `<p style="margin-top:0.75rem;font-size:0.75rem;color:var(--muted);letter-spacing:0.05em;">${cat.subtitle}</p>`
+    : '';
 
-  // Hero — show subtitle if defined
-  const subtitle = cat.subtitle ? `<p style="margin-top:0.75rem;font-size:0.75rem;color:var(--muted);letter-spacing:0.05em;">${cat.subtitle}</p>` : '';
   document.getElementById('detail-hero').innerHTML = `
     <button class="back-btn" onclick="showHome()">← All Categories</button>
     <div class="detail-bg-text">${cat.icon}</div>
-    <h2><span>${cat.icon}</span> ${cat.name}</h2>
+    <div class="detail-hero-top">
+      <h2><span>${cat.icon}</span> ${cat.name}</h2>
+      ${playlistBtn(cat._playlistUrl)}
+    </div>
     ${subtitle}`;
 
-  // Ranked list
-  const ranked = cat.top10.map(a => {
-    // extra meta line: for tracks show performer/op info if present
-    const meta = a.meta ? `<div style="font-size:0.65rem;color:var(--muted);margin-bottom:0.5rem;font-style:italic;">${a.meta}</div>` : '';
-
+  const ranked = entries.map((a, i) => {
+    const rank = i + 1;
+    const meta = a.meta
+      ? `<div style="font-size:0.65rem;color:var(--muted);margin-bottom:0.5rem;font-style:italic;">${a.meta}</div>`
+      : '';
     return `
       <div class="album-row">
         <div class="album-rank-col">
-          <div class="album-rank-num ${rankClass(a.rank)}">${String(a.rank).padStart(2,'0')}</div>
+          <div class="album-rank-num ${rankClass(rank)}">${String(rank).padStart(2,'0')}</div>
         </div>
+        ${a.cover ? `<div class="album-cover-col"><img class="album-cover" src="${a.cover}" alt="${a.title}" loading="lazy"></div>` : ''}
         <div class="album-main-col">
           <div class="album-row-title">${a.title}</div>
           <div class="album-row-artist">${a.artist}</div>
           ${meta}
           ${a.year ? `<div class="album-row-year">${a.year}</div>` : ''}
-          ${buildMedia(cat, a)}
+          ${buildMedia(a)}
         </div>
       </div>`;
   }).join('');
 
-  // Honorable mentions
   let hmSection = '';
   if (cat.honorableMentions && cat.honorableMentions.length) {
-    const sType = cat.type === 'tracks' ? 'track' : 'album';
     const cards = cat.honorableMentions.map(a => {
       const lnk = a.spotifyId
-        ? `<a class="hm-link" href="${spotifyOpenUrl(a.spotifyId, a.spotifyType || sType)}" target="_blank" rel="noopener">▶ Spotify</a>`
+        ? `<a class="hm-link" href="${spotifyOpenUrl(a.spotifyId, a.type || 'album')}" target="_blank" rel="noopener">▶ Spotify</a>`
         : (a.link ? `<a class="hm-link" href="${a.link}" target="_blank" rel="noopener">▶ Listen</a>` : '');
       return `<div class="hm-card"><div class="hm-title">${a.title}</div><div class="hm-artist">${a.artist}${a.year ? ' · '+a.year : ''}</div>${lnk}</div>`;
     }).join('');
@@ -821,15 +945,13 @@ function showDetail(id) {
   }
 
   document.getElementById('detail-content').innerHTML = `
-    <div class="section-label">Top ${cat.top10.length} ${listLabel}</div>
+    <div class="section-label">Top ${entries.length}</div>
     <div class="ranked-list">${ranked}</div>
     ${hmSection}`;
 
-  // Breadcrumb
   document.getElementById('breadcrumb').innerHTML =
     `<span>All</span><span class="sep">/</span><span class="crumb-active">${cat.icon} ${cat.name}</span>`;
 
-  // Highlight sidebar trigger
   document.querySelectorAll('.sidebar-group-trigger').forEach(t => t.classList.remove('active'));
   const trig = document.getElementById(`sidebar-trigger-${id}`);
   if (trig) trig.classList.add('active');
@@ -838,7 +960,7 @@ function showDetail(id) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// ── Show home ──
+// ── Show home ────────────────────────────────────────────────────────────────
 function showHome() {
   document.getElementById('breadcrumb').innerHTML = '';
   document.querySelectorAll('.sidebar-group-trigger').forEach(t => t.classList.remove('active'));
@@ -846,21 +968,59 @@ function showHome() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// ── Switch page helper ──
+// ── Switch page ──────────────────────────────────────────────────────────────
 function switchPage(name) {
   document.querySelectorAll('.page').forEach(p => {
     p.classList.remove('active');
     p.style.animation = 'none';
   });
   const target = document.getElementById(`page-${name}`);
-  target.offsetHeight; // reflow
+  target.offsetHeight;
   target.style.animation = '';
   target.classList.add('active');
 }
 
-// ── Init ──
-buildSidebar();
-buildHome();
+// ── Init — load playlists.json, then all CSVs in parallel, then render ─────────
+(async () => {
+  const grid = document.getElementById('home-grid');
+
+  // 1. Load playlists.json (single source of truth for categories)
+  try {
+    const resp = await fetch('playlists.json');
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    CATEGORIES = await resp.json();
+    // Derive src from id if not set
+    CATEGORIES.forEach(cat => {
+      if (!cat.src) cat.src = `data/${cat.id}.csv`;
+    });
+  } catch (e) {
+    console.error('Could not load playlists.json:', e);
+    grid.innerHTML = `<div class="loading-card" style="color:var(--accent)">
+      Could not load playlists.json — check the file exists in your repo.
+    </div>`;
+    return;
+  }
+
+  // 2. Show loading placeholders (now we know the category names)
+  grid.innerHTML = CATEGORIES.map(cat => `
+    <div class="loading-card">
+      <div class="loading-spinner"></div>
+      <span>${cat.icon} ${cat.name}</span>
+    </div>`).join('');
+
+  buildSidebar();
+
+  // 3. Load all CSVs in parallel
+  await Promise.all(CATEGORIES.map(loadCategory));
+
+  // 4. Update sidebar counts
+  CATEGORIES.forEach(cat => {
+    const link = document.querySelector(`#sidebar-group-${cat.id} .sidebar-sub a`);
+    if (link) link.textContent = `Full Top ${cat._entries?.length ?? 0}`;
+  });
+
+  buildHome();
+})();
 </script>
 </body>
 </html>

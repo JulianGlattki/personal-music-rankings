@@ -1,0 +1,23 @@
+[
+  {
+    "id": "country_songs",
+    "name": "Country Songs",
+    "icon": "🤠",
+    "type": "tracks",
+    "playlist_url": "https://open.spotify.com/playlist/4jlGHd8V1pTJooFSGtNOhL?si=c4a42ad5befa4889"
+  },
+  {
+    "id": "country_albums",
+    "name": "Country Albums",
+    "icon": "🤠",
+    "type": "albums",
+    "playlist_url": "https://open.spotify.com/playlist/0IpVTitmP6kb9f0Ckbhjsv?si=ceba4d8c02a24051"
+  },
+  {
+    "id": "piano_songs",
+    "name": "Piano Songs",
+    "icon": "🎹",
+    "type": "tracks",
+    "playlist_url": "https://open.spotify.com/playlist/603YB4fJa8aTKlB8gRrKw2?si=7cd571dfd0974c74"
+  }
+]
