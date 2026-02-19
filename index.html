@@ -921,8 +921,7 @@ function showDetail(id) {
         <div class="album-rank-col">
           <div class="album-rank-num ${rankClass(rank)}">${String(rank).padStart(2,'0')}</div>
         </div>
-        ${a.cover ? `<div class="album-cover-col"><img class="album-cover" src="${a.cover}" alt="${a.title}" loading="lazy"></div>` : ''}
-        <div class="album-main-col">
+        <div class="album-main-col" style="flex:1;min-width:0;">
           <div class="album-row-title">${a.title}</div>
           <div class="album-row-artist">${a.artist}</div>
           ${meta}
